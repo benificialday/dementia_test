@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>치매 테스트 기억력 게임</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+            background-color: #f0f8ff;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #4169e1;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+        .card {
+            height: 120px;
+            background-color: #4169e1;
+            border-radius: 5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 42px;
+            color: white;
+            transition: all 0.3s ease;
+        }
+        .card.flipped {
+            transform: rotateY(180deg);
+            background-color: white;
+            color: #333;
+            border: 2px solid #4169e1;
+        }
+        .card.matched {
+            background-color: #90ee90;
+            cursor: default;
+        }
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+        }
+        .stat-box {
+            background-color: #e6f2ff;
+            padding: 10px 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            font-size: 20px;
+            font-weight: bold;
+        }
+        button {
+            background-color: #4169e1;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 22px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #3151b5;
+        }
+        .result-popup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s ease;
+        }
+        
+        .result-popup.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        .result-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            max-width: 80%;
+            width: 400px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .result-message {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        
+        .close-popup {
+            background-color: #4169e1;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 22px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: background-color 0.3s ease;
+        }
+        
+        .close-popup:hover {
+            background-color: #3151b5;
+        }
+        
+        .good {
+            background-color: #d4ffcf;
+            color: #2e8b57;
+        }
+        
+        .warning {
+            background-color: #fff4cc;
+            color: #ff8c00;
+        }
+        
+        .danger {
+            background-color: #ffcccc;
+            color: #cc0000;
+        }
+        .instructions {
+            margin-bottom: 20px;
+            text-align: left;
+            padding: 10px;
+            background-color: #e6f2ff;
+            border-radius: 5px;
+            font-size: 18px;
+        }
+        .instructions h3 {
+            font-size: 22px;
+        }
+        @media (max-width: 600px) {
+            .game-board {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            .card {
+                height: 100px;
+                font-size: 36px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>치매 테스트 기억력 게임</h1>
+        <div class="instructions">
+            <h3>게임 방법:</h3>
+            <p>1. 카드를 클릭하여 뒤집으세요.</p>
+            <p>2. 두 개의 카드를 뒤집어 같은 그림을 찾으세요.</p>
+            <p>3. 모든 카드 짝을 찾아 게임을 완료하세요.</p>
+            <p>4. 시도 횟수와 걸린 시간으로 기억력을 평가합니다.</p>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-box">시도 횟수: <span id="moves">0</span></div>
+            <div class="stat-box">경과 시간: <span id="timer">0</span>초</div>
+            <div class="stat-box">찾은 짝: <span id="pairs">0</span>/8</div>
+        </div>
+        
+        <div class="game-board" id="game-board"></div>
+        
+        <button id="start-button">게임 시작</button>
+        <button id="restart-button" style="display: none;">다시 시작</button>
+    </div>
+    
+    <div class="result-popup" id="result-popup">
+        <div class="result-content">
+            <div class="result-message" id="result-message"></div>
+            <p>시도 횟수: <span id="final-moves">0</span></p>
+            <p>경과 시간: <span id="final-time">0</span>초</p>
+            <button class="close-popup" id="close-popup">확인</button>
+        </div>
+    </div>
+
+    <script>
+        // 전역 변수 선언
+        const symbols = ['🍎', '🍌', '🍇', '🍊', '🍒', '🍓', '🥝', '🍍'];
+        let cards = [];
+        let flippedCards = [];
+        let matchedPairs = 0;
+        let moves = 0;
+        let timer = 0;
+        let timerInterval;
+        let gameStarted = false;
+        
+        // DOM 요소들
+        const gameBoard = document.getElementById('game-board');
+        const startButton = document.getElementById('start-button');
+        const restartButton = document.getElementById('restart-button');
+        const movesElement = document.getElementById('moves');
+        const timerElement = document.getElementById('timer');
+        const pairsElement = document.getElementById('pairs');
+        const resultPopup = document.getElementById('result-popup');
+        const resultMessage = document.getElementById('result-message');
+        const finalMovesElement = document.getElementById('final-moves');
+        const finalTimeElement = document.getElementById('final-time');
+        const closePopupButton = document.getElementById('close-popup');
+        
+        // 게임 초기화
+        function initGame() {
+            console.log("게임 초기화 함수 실행");
+            gameBoard.innerHTML = '';
+            cards = [];
+            flippedCards = [];
+            matchedPairs = 0;
+            moves = 0;
+            timer = 0;
+            gameStarted = true;
+            
+            // 팝업 닫기
+            resultPopup.classList.remove('show');
+            
+            // 타이머 초기화 및 시작
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timer++;
+                timerElement.textContent = timer;
+            }, 1000);
+            
+            // 카드 생성
+            let cardPairs = [...symbols, ...symbols];
+            cardPairs = shuffleArray(cardPairs);
+            
+            cardPairs.forEach((symbol, index) => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.dataset.id = index;
+                card.dataset.symbol = symbol;
+                card.addEventListener('click', flipCard);
+                gameBoard.appendChild(card);
+                cards.push(card);
+            });
+            
+            // 통계 초기화
+            movesElement.textContent = '0';
+            timerElement.textContent = '0';
+            pairsElement.textContent = '0/8';
+            
+            // 버튼 상태 변경
+            startButton.style.display = 'none';
+            restartButton.style.display = 'inline-block';
+        }
+        
+        // 카드 뒤집기
+        function flipCard() {
+            if (!gameStarted) return;
+            
+            const selectedCard = this;
+            
+            // 이미 뒤집힌 카드, 매치된 카드는 무시
+            if (selectedCard.classList.contains('flipped') || 
+                selectedCard.classList.contains('matched') || 
+                flippedCards.length >= 2) {
+                return;
+            }
+            
+            // 카드 뒤집기
+            selectedCard.classList.add('flipped');
+            selectedCard.textContent = selectedCard.dataset.symbol;
+            flippedCards.push(selectedCard);
+            
+            // 두 카드가 뒤집히면 확인
+            if (flippedCards.length === 2) {
+                moves++;
+                movesElement.textContent = moves;
+                
+                checkForMatch();
+            }
+        }
+        
+        // 카드 일치 확인
+        function checkForMatch() {
+            const card1 = flippedCards[0];
+            const card2 = flippedCards[1];
+            
+            if (card1.dataset.symbol === card2.dataset.symbol) {
+                // 일치하는 경우
+                card1.classList.add('matched');
+                card2.classList.add('matched');
+                matchedPairs++;
+                pairsElement.textContent = `${matchedPairs}/8`;
+                
+                // 모든 짝을 찾았는지 확인
+                if (matchedPairs === 8) {
+                    // 약간의 지연 후에 게임 종료 함수 호출
+                    setTimeout(() => {
+                        endGame();
+                    }, 500);
+                }
+            } else {
+                // 일치하지 않는 경우
+                setTimeout(() => {
+                    card1.classList.remove('flipped');
+                    card2.classList.remove('flipped');
+                    card1.textContent = '';
+                    card2.textContent = '';
+                }, 1000);
+            }
+            
+            // 뒤집힌 카드 배열 초기화
+            setTimeout(() => {
+                flippedCards = [];
+            }, 1000);
+        }
+        
+        // 게임 종료
+        function endGame() {
+            console.log("게임 종료 함수 실행");
+            clearInterval(timerInterval);
+            gameStarted = false;
+            
+            // 결과 메시지
+            let message = '';
+            let resultClass = '';
+            
+            if (moves <= 16 && timer <= 60) {
+                message = '탁월한 기억력입니다! 매우 우수합니다.';
+                resultClass = 'good';
+            } else if (moves <= 25 && timer <= 120) {
+                message = '좋은 기억력입니다. 정상 범위입니다.';
+                resultClass = 'good';
+            } else if (moves <= 35 && timer <= 180) {
+                message = '보통 수준의 기억력입니다. 더 연습해보세요.';
+                resultClass = 'warning';
+            } else {
+                message = '기억력 향상이 필요합니다. 정기적인 두뇌 활동을 추천합니다.';
+                resultClass = 'danger';
+            }
+            
+            console.log("결과 메시지:", message);
+            console.log("결과 클래스:", resultClass);
+            
+            // 결과 팝업 띄우기
+            resultMessage.textContent = message;
+            resultMessage.className = `result-message ${resultClass}`;
+            finalMovesElement.textContent = moves;
+            finalTimeElement.textContent = timer;
+            
+            // 팝업 표시
+            console.log("팝업 표시 시도");
+            setTimeout(() => {
+                resultPopup.classList.add('show');
+                console.log("팝업 클래스 추가됨:", resultPopup.className);
+            }, 300);
+        }
+        
+        // 배열 섞기 (Fisher-Yates 알고리즘)
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+        
+        // 이벤트 리스너
+        startButton.addEventListener('click', initGame);
+        restartButton.addEventListener('click', initGame);
+        closePopupButton.addEventListener('click', () => {
+            resultPopup.classList.remove('show');
+        });
+        
+        // 디버깅을 위한 콘솔 로그
+        console.log("스크립트 로딩 완료");
+        console.log("팝업 요소:", resultPopup);
+        console.log("시작 버튼:", startButton);
+    </script>
+</body>
+</html>
